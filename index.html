@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafío Transmedia: Convergencia y Educación</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        /* Container Principal */
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--surface);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            overflow: hidden;
+            position: relative;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header con Stats */
+        .header {
+            background: rgba(0,0,0,0.2);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* Pantallas (Inicio, Juego, Final) */
+        .screen {
+            padding: 2rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Pantalla de Inicio */
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .intro-text {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            background: var(--primary-dark);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        /* Área de Preguntas */
+        .question-card {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .category-tag {
+            background: rgba(139, 92, 246, 0.2);
+            color: var(--accent);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .option-btn {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 12px;
+            color: var(--text);
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--primary);
+        }
+
+        .option-btn.correct {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--success);
+            color: #86efac;
+        }
+
+        .option-btn.incorrect {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--error);
+            color: #fca5a5;
+        }
+
+        /* Modal de Retroalimentación */
+        .feedback-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .feedback-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .feedback-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .feedback-title {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .feedback-text {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        /* Animaciones */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .pop-in {
+            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Media Queries */
+        @media (min-width: 640px) {
+            .options-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .screen {
+                padding: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <!-- Barra de Progreso -->
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="stat-box">
+                <span class="stat-label">Puntos</span>
+                <span class="stat-value" id="score">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Pregunta</span>
+                <span class="stat-value" id="questionCount">1/10</span>
+            </div>
+        </header>
+
+        <!-- Pantalla de Inicio -->
+        <div id="startScreen" class="screen">
+            <h1>Desafío Transmedia</h1>
+            <p class="intro-text">
+                Pon a prueba tus conocimientos sobre la Cultura de la Convergencia, Henry Jenkins, Carlos Scolari y la evolución de las narrativas educativas.
+                <br><br>
+                ¿Eres un consumidor pasivo o un prosumidor experto?
+            </p>
+            <button class="btn" onclick="game.start()">Iniciar Quiz</button>
+        </div>
+
+        <!-- Pantalla de Juego -->
+        <div id="gameScreen" class="screen hidden">
+            <div class="question-card">
+                <span class="category-tag" id="categoryTag">Concepto Clave</span>
+                <h2 class="question-text" id="questionText">Cargando pregunta...</h2>
+                <div class="options-grid" id="optionsGrid">
+                    <!-- Las opciones se generan con JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Overlay -->
+        <div id="feedbackOverlay" class="feedback-overlay">
+            <div class="feedback-icon" id="feedbackIcon">✅</div>
+            <div class="feedback-title" id="feedbackTitle">¡Correcto!</div>
+            <p class="feedback-text" id="feedbackText">Explicación aquí.</p>
+            <button class="btn" onclick="game.nextQuestion()">Siguiente</button>
+        </div>
+
+        <!-- Pantalla Final -->
+        <div id="endScreen" class="screen hidden">
+            <h1>¡Juego Terminado!</h1>
+            <div style="font-size: 4rem; margin: 1rem 0;" id="finalIcon">🏆</div>
+            <p class="intro-text">Tu puntuación final:</p>
+            <div style="font-size: 3rem; font-weight: bold; color: var(--primary); margin-bottom: 1rem;" id="finalScore">0</div>
+            <p class="intro-text" id="finalMessage">Mensaje final</p>
+            <button class="btn" onclick="game.restart()">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                category: "Henry Jenkins",
+                question: "Según Henry Jenkins, la 'Cultura de la Convergencia' se define principalmente como:",
+                options: [
+                    "Un aparato tecnológico que une TV, teléfono e internet en una sola caja.",
+                    "Un cambio cultural donde el contenido fluye por múltiples plataformas y las audiencias migran.",
+                    "La sustitución de los libros impresos por tabletas digitales en las escuelas.",
+                    "La centralización de los medios de comunicación en una sola empresa global."
+                ],
+                correct: 1,
+                feedback: "¡Exacto! Para Jenkins, la convergencia no es una 'caja negra' tecnológica, sino un proceso cultural de flujo de contenidos, cooperación entre industrias y comportamiento migratorio de las audiencias."
+            },
+            {
+                category: "Narrativas",
+                question: "¿Cuál es la diferencia fundamental entre Multimedia y Transmedia según los textos?",
+                options: [
+                    "Multimedia es para educación y Transmedia es para entretenimiento.",
+                    "Multimedia es redundante (repite contenido) y Transmedia es expansiva (añade contenido único).",
+                    "Transmedia usa video y audio, mientras que Multimedia solo usa texto e imágenes.",
+                    "No hay diferencia, son sinónimos utilizados por distintos autores."
+                ],
+                correct: 1,
+                feedback: "Correcto. Multimedia tiende a la repetición en un solo canal o página, mientras que la Narrativa Transmedia expande el universo narrativo: lo que se cuenta en el cómic no se repite en la película, se complementa."
+            },
+            {
+                category: "Roles Educativos",
+                question: "¿Qué es un 'Prosumidor' en el contexto de la cultura digital pedagógica?",
+                options: [
+                    "Un estudiante que consume información de manera pasiva y memorística.",
+                    "Un profesor que utiliza diapositivas digitales en lugar de pizarra.",
+                    "Un sujeto que consume y produce contenido, participando activamente en la creación de conocimiento.",
+                    "Un software educativo que evalúa automáticamente a los alumnos."
+                ],
+                correct: 2,
+                feedback: "¡Así es! El término (Productor + Consumidor) describe al estudiante que no solo recibe información, sino que se apropia de ella, la remezcla y genera nuevos artefactos (videos, blogs, wikis)."
+            },
+            {
+                category: "Inteligencia Colectiva",
+                question: "Basado en Pierre Lévy, ¿cuál es la premisa de la Inteligencia Colectiva?",
+                options: [
+                    "Solo los expertos académicos poseen la verdad absoluta.",
+                    "Nadie lo sabe todo, pero todos saben algo, y el conocimiento reside en la comunidad.",
+                    "La inteligencia artificial reemplazará el pensamiento humano.",
+                    "El conocimiento individual es más valioso que el trabajo en grupo."
+                ],
+                correct: 1,
+                feedback: "Correcto. En la cultura digital, el conocimiento es una construcción social compartida donde la comunidad negocia significados en tiempo real."
+            },
+            {
+                category: "Competencias",
+                question: "¿Qué competencia del Alfabetismo Transmedia (Scolari) implica la capacidad de 'remixear' contenidos?",
+                options: [
+                    "Gestión de la Identidad",
+                    "Apropiación",
+                    "Navegación Transmedia",
+                    "Juicio"
+                ],
+                correct: 1,
+                feedback: "Exacto. La Apropiación es la habilidad para tomar contenidos mediáticos significativos, remezclarlos y probarlos en nuevos contextos, pasando de consumidor a creador."
+            },
+            {
+                category: "Ejemplos",
+                question: "En el caso de 'Bert is Evil' (Blas es malo), ¿qué fenómeno de la convergencia se ilustra?",
+                options: [
+                    "Convergencia Corporativa controlada por los dueños de Plaza Sésamo.",
+                    "Convergencia Popular, donde los usuarios recontextualizan imágenes creando nuevos significados globales.",
+                    "La falta de seguridad en los servidores de internet en los años 90.",
+                    "El uso educativo de personajes infantiles en la política."
+                ],
+                correct: 1,
+                feedback: "Correcto. Muestra cómo una parodia creada por un usuario (bottom-up) puede colisionar con eventos mundiales y medios corporativos, escapando del control original."
+            },
+            {
+                category: "Diseño Instruccional",
+                question: "¿Cómo se describe el rol del docente en una educación transmedia?",
+                options: [
+                    "Como un locutor que transmite conocimientos fijos.",
+                    "Como un vigilante que evita que los alumnos usen celulares.",
+                    "Como un Diseñador de Experiencias Transmedia que orquesta el flujo de conocimiento.",
+                    "Como un bibliotecario que solo organiza PDFs."
+                ],
+                correct: 2,
+                feedback: "¡Bien! El docente deja de ser el único poseedor del saber para convertirse en un arquitecto que diseña cómo los estudiantes navegan entre la sesión síncrona, el aula virtual, redes sociales y otros medios."
+            },
+            {
+                category: "Estrategia",
+                question: "Si la película es la 'nave nodriza' de una franquicia, ¿qué función cumplen los cómics o videojuegos asociados?",
+                options: [
+                    "Simplemente publicidad para vender más entradas.",
+                    "Repetir la misma historia para quienes no les gusta el cine.",
+                    "Expandir la narrativa, contando historias secundarias o antecedentes no vistos en la película.",
+                    "No tienen ninguna función narrativa."
+                ],
+                correct: 2,
+                feedback: "Exacto. En una estrategia transmedia real, los medios periféricos expanden el universo, aportando piezas únicas del rompecabezas narrativo."
+            },
+            {
+                category: "Tensiones",
+                question: "¿Cuál es la tensión principal entre la Convergencia Corporativa y la Convergencia Popular?",
+                options: [
+                    "La velocidad de internet.",
+                    "Control vs. Participación (Copyright vs. Apropiación de los fans).",
+                    "El precio de los dispositivos electrónicos.",
+                    "La calidad de imagen de los videos."
+                ],
+                correct: 1,
+                feedback: "Correcto. Las corporaciones buscan controlar sus franquicias (top-down) para obtener beneficios, mientras los fans buscan apropiarse de ellas y participar (bottom-up), a menudo generando conflictos legales o creativos."
+            },
+            {
+                category: "Alfabetismo",
+                question: "¿Qué es la 'Navegación Transmedia'?",
+                options: [
+                    "Saber usar Google Maps.",
+                    "La capacidad de seguir el flujo de historias e información a través de múltiples modalidades y plataformas.",
+                    "Navegar por internet usando múltiples pestañas a la vez.",
+                    "La habilidad de conducir barcos en videojuegos."
+                ],
+                correct: 1,
+                feedback: "¡Exacto! Es una competencia clave que permite a los usuarios reconstruir la narrativa completa dispersa en diferentes medios."
+            }
+        ];
+
+        const game = {
+            currentQuestionIndex: 0,
+            score: 0,
+            elements: {
+                startScreen: document.getElementById('startScreen'),
+                gameScreen: document.getElementById('gameScreen'),
+                endScreen: document.getElementById('endScreen'),
+                questionText: document.getElementById('questionText'),
+                optionsGrid: document.getElementById('optionsGrid'),
+                scoreDisplay: document.getElementById('score'),
+                questionCountDisplay: document.getElementById('questionCount'),
+                progressBar: document.getElementById('progressBar'),
+                feedbackOverlay: document.getElementById('feedbackOverlay'),
+                feedbackTitle: document.getElementById('feedbackTitle'),
+                feedbackText: document.getElementById('feedbackText'),
+                feedbackIcon: document.getElementById('feedbackIcon'),
+                categoryTag: document.getElementById('categoryTag'),
+                finalScore: document.getElementById('finalScore'),
+                finalMessage: document.getElementById('finalMessage'),
+                finalIcon: document.getElementById('finalIcon')
+            },
+
+            start() {
+                this.currentQuestionIndex = 0;
+                this.score = 0;
+                this.updateStats();
+                this.elements.startScreen.classList.add('hidden');
+                this.elements.endScreen.classList.add('hidden');
+                this.elements.gameScreen.classList.remove('hidden');
+                this.loadQuestion();
+            },
+
+            loadQuestion() {
+                const q = questions[this.currentQuestionIndex];
+                
+                // Animación de entrada
+                this.elements.questionText.classList.remove('pop-in');
+                void this.elements.questionText.offsetWidth; // Trigger reflow
+                this.elements.questionText.classList.add('pop-in');
+
+                this.elements.categoryTag.textContent = q.category;
+                this.elements.questionText.textContent = q.question;
+                this.elements.optionsGrid.innerHTML = '';
+                this.elements.questionCountDisplay.textContent = `${this.currentQuestionIndex + 1}/${questions.length}`;
+                
+                // Actualizar barra de progreso
+                const progress = (this.currentQuestionIndex / questions.length) * 100;
+                this.elements.progressBar.style.width = `${progress}%`;
+
+                q.options.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = opt;
+                    btn.onclick = () => this.checkAnswer(index, btn);
+                    this.elements.optionsGrid.appendChild(btn);
+                });
+            },
+
+            checkAnswer(selectedIndex, btn) {
+                // Deshabilitar todos los botones
+                const buttons = this.elements.optionsGrid.querySelectorAll('.option-btn');
+                buttons.forEach(b => b.disabled = true);
+
+                const q = questions[this.currentQuestionIndex];
+                const isCorrect = selectedIndex === q.correct;
+
+                if (isCorrect) {
+                    btn.classList.add('correct');
+                    this.score += 100;
+                    this.showFeedback(true, q.feedback);
+                } else {
+                    btn.classList.add('incorrect');
+                    buttons[q.correct].classList.add('correct'); // Mostrar la correcta
+                    this.showFeedback(false, q.feedback);
+                }
+                this.updateStats();
+            },
+
+            showFeedback(isCorrect, text) {
+                const overlay = this.elements.feedbackOverlay;
+                const title = this.elements.feedbackTitle;
+                const content = this.elements.feedbackText;
+                const icon = this.elements.feedbackIcon;
+
+                if (isCorrect) {
+                    title.textContent = "¡Correcto!";
+                    title.style.color = "var(--success)";
+                    icon.textContent = "✅";
+                } else {
+                    title.textContent = "Incorrecto";
+                    title.style.color = "var(--error)";
+                    icon.textContent = "❌";
+                }
+
+                content.textContent = text;
+                
+                setTimeout(() => {
+                    overlay.classList.add('active');
+                }, 500);
+            },
+
+            nextQuestion() {
+                this.elements.feedbackOverlay.classList.remove('active');
+                this.currentQuestionIndex++;
+
+                if (this.currentQuestionIndex < questions.length) {
+                    this.loadQuestion();
+                } else {
+                    this.endGame();
+                }
+            },
+
+            updateStats() {
+                this.elements.scoreDisplay.textContent = this.score;
+            },
+
+            endGame() {
+                this.elements.gameScreen.classList.add('hidden');
+                this.elements.endScreen.classList.remove('hidden');
+                this.elements.finalScore.textContent = this.score;
+                this.elements.progressBar.style.width = '100%';
+
+                const percentage = (this.score / (questions.length * 100)) * 100;
+                
+                if (percentage >= 90) {
+                    this.elements.finalMessage.textContent = "¡Excelente! Eres un verdadero Arquitecto Transmedia.";
+                    this.elements.finalIcon.textContent = "🏆";
+                } else if (percentage >= 70) {
+                    this.elements.finalMessage.textContent = "¡Muy bien! Tienes un gran dominio de la convergencia.";
+                    this.elements.finalIcon.textContent = "🌟";
+                } else {
+                    this.elements.finalMessage.textContent = "Sigue explorando. La narrativa transmedia requiere práctica.";
+                    this.elements.finalIcon.textContent = "📚";
+                }
+            },
+
+            restart() {
+                this.start();
+            }
+        };
+    </script>
+</body>
+</html>
