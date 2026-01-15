@@ -340,7 +340,7 @@
     </div>
 
     <script>
-        const questions = [
+        const questionsSource = [
             {
                 category: "Henry Jenkins",
                 question: "Según Henry Jenkins, la 'Cultura de la Convergencia' se define principalmente como:",
@@ -466,6 +466,7 @@
         const game = {
             currentQuestionIndex: 0,
             score: 0,
+            activeQuestions: [], // Almacenará las preguntas barajadas
             elements: {
                 startScreen: document.getElementById('startScreen'),
                 gameScreen: document.getElementById('gameScreen'),
@@ -485,9 +486,22 @@
                 finalIcon: document.getElementById('finalIcon')
             },
 
+            // Función para mezclar array (Fisher-Yates)
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            },
+
             start() {
                 this.currentQuestionIndex = 0;
                 this.score = 0;
+                // Creamos una copia de las preguntas originales y las mezclamos
+                // Importante: usamos [...] para clonar el array y no modificar el original
+                this.activeQuestions = this.shuffleArray([...questionsSource]);
+                
                 this.updateStats();
                 this.elements.startScreen.classList.add('hidden');
                 this.elements.endScreen.classList.add('hidden');
@@ -496,7 +510,7 @@
             },
 
             loadQuestion() {
-                const q = questions[this.currentQuestionIndex];
+                const q = this.activeQuestions[this.currentQuestionIndex];
                 
                 // Animación de entrada
                 this.elements.questionText.classList.remove('pop-in');
@@ -506,17 +520,26 @@
                 this.elements.categoryTag.textContent = q.category;
                 this.elements.questionText.textContent = q.question;
                 this.elements.optionsGrid.innerHTML = '';
-                this.elements.questionCountDisplay.textContent = `${this.currentQuestionIndex + 1}/${questions.length}`;
+                this.elements.questionCountDisplay.textContent = `${this.currentQuestionIndex + 1}/${this.activeQuestions.length}`;
                 
                 // Actualizar barra de progreso
-                const progress = (this.currentQuestionIndex / questions.length) * 100;
+                const progress = (this.currentQuestionIndex / this.activeQuestions.length) * 100;
                 this.elements.progressBar.style.width = `${progress}%`;
 
-                q.options.forEach((opt, index) => {
+                // Crear un array de objetos con el texto y el índice original
+                // Esto es necesario para rastrear cuál es la correcta después de mezclar
+                let optionsWithIndices = q.options.map((opt, index) => ({ text: opt, originalIndex: index }));
+                
+                // Mezclar las opciones
+                this.shuffleArray(optionsWithIndices);
+
+                optionsWithIndices.forEach((optObj) => {
                     const btn = document.createElement('button');
                     btn.className = 'option-btn';
-                    btn.textContent = opt;
-                    btn.onclick = () => this.checkAnswer(index, btn);
+                    btn.textContent = optObj.text;
+                    // Guardamos el índice original en un atributo de datos para encontrarlo luego
+                    btn.dataset.originalIndex = optObj.originalIndex;
+                    btn.onclick = () => this.checkAnswer(optObj.originalIndex, btn);
                     this.elements.optionsGrid.appendChild(btn);
                 });
             },
@@ -526,7 +549,7 @@
                 const buttons = this.elements.optionsGrid.querySelectorAll('.option-btn');
                 buttons.forEach(b => b.disabled = true);
 
-                const q = questions[this.currentQuestionIndex];
+                const q = this.activeQuestions[this.currentQuestionIndex];
                 const isCorrect = selectedIndex === q.correct;
 
                 if (isCorrect) {
@@ -535,7 +558,14 @@
                     this.showFeedback(true, q.feedback);
                 } else {
                     btn.classList.add('incorrect');
-                    buttons[q.correct].classList.add('correct'); // Mostrar la correcta
+                    
+                    // Buscar el botón correcto usando el atributo data-original-index
+                    // (ya que el orden visual ahora es aleatorio)
+                    const correctBtn = Array.from(buttons).find(b => parseInt(b.dataset.originalIndex) === q.correct);
+                    if (correctBtn) {
+                        correctBtn.classList.add('correct');
+                    }
+                    
                     this.showFeedback(false, q.feedback);
                 }
                 this.updateStats();
@@ -568,7 +598,7 @@
                 this.elements.feedbackOverlay.classList.remove('active');
                 this.currentQuestionIndex++;
 
-                if (this.currentQuestionIndex < questions.length) {
+                if (this.currentQuestionIndex < this.activeQuestions.length) {
                     this.loadQuestion();
                 } else {
                     this.endGame();
@@ -585,7 +615,8 @@
                 this.elements.finalScore.textContent = this.score;
                 this.elements.progressBar.style.width = '100%';
 
-                const percentage = (this.score / (questions.length * 100)) * 100;
+                const totalQuestions = this.activeQuestions.length;
+                const percentage = (this.score / (totalQuestions * 100)) * 100;
                 
                 if (percentage >= 90) {
                     this.elements.finalMessage.textContent = "¡Excelente! Eres un verdadero Arquitecto Transmedia.";
